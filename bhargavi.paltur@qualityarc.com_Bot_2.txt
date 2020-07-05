@@ -1,0 +1,105 @@
+1	Comment: ======================================================================================================================================================; Disabled: True
+2	Comment: =====MASTER BOT NAME:          BFSI (Banking Financial Services and Insurance) Macros================================================================================; Disabled: True
+3	Comment: =====DESCRIPTION:     Follow Businees rules and compare the Data.xlsx and MacroSheet.xls, when there is a match pick MacroName from MacroSheet.xlsx and dump it in corrosponding column in Data.xlsx===; Disabled: True
+4	Comment: =====DEVELOPED BY:          Bhargavi Paltur  (bhargavi.paltur@qualityarc.com) =====================================================================================; Disabled: True
+5	Comment: =======================================================================================================================================================; Disabled: True
+6	Comment: =====================================Run Task to create the necessary folder structure, with Input, Output and Log files==================================================; Disabled: True
+7	Run Task "$AAApplicationPath$\Automation Anywhere\My Tasks\UseCase_2\UseCase2_CreateFoldersFiles.atmx" @Repeat: Do Not Repeat @Speed: Normal Speed @Pass Variable as argument: $Prompt-Assignment$; $vErrorFlag$; $vErrorLogFile$; $vErrorSnapShotsPath$; $vInputFile$; $vOutputFile$; $vOutputFolder$; $vEmail$
+8	Comment: =====================================Begin Error Handling, Open Input and Output files===========================================================================; Disabled: True
+9	Begin Error Handling; Action: Continue; Options: Take Snapshot, Log to File, Variable Assignment,  Task Status: Fail
+10	     If $vErrorFlag$ Equal To (=) "False" Then  
+11	          Excel: Open Spreadsheet "$vOutputFile$". ActiveSheet: "Default". Contains Header. Session: Session1
+12	          Excel: Open Spreadsheet "$vInputFile$". ActiveSheet: "Default". Contains Header. Session: Session2
+13	          Excel: Get All Cells Session: Session1
+14	          Comment: ===================================Start loop to read the Data.xlsx file row by row===========================================================================; Disabled: True
+15	          Start Loop "Each row in an Excel dataset of Session: Session1"
+16	               Variable Operation: $Excel Column(Payment Mode)$ To $vDataPaymentMode$
+17	               Variable Operation: $Excel Column(Bank Name)$ To $vDataBankName$
+18	               Variable Operation: $Excel Column(RRN)$ To $vDataRRN$
+19	               Excel: Get All Cells Session: Session2
+20	               Comment: ===================================For every row in Data.xlsx file Start loop to verify the data in MacroSheet.xlsx file===============================================; Disabled: True
+21	               Start Loop "Each row in an Excel dataset of Session: Session2"
+22	                    Variable Operation: $Excel Column(Payment Mode)$ To $vMacroPaymentMode$
+23	                    Variable Operation: $Excel Column(Bank Name)$ To $vMacroBankName$
+24	                    Variable Operation: $Excel Column(RRN)$ To $vMacroRRN$
+25	                    Variable Operation: $Excel Column(Macro Name)$ To $vMacroMacroName$
+26	                    Comment: ===================================If condition to check whether the PaymentMode and RRN match=======================================================; Disabled: True
+27	                    If $vDataPaymentMode$ Equal To (=) $vMacroPaymentMode$ AND $vDataRRN$ Equal To (=) $vMacroRRN$ Then
+28	                         Comment: ========================If the PaymentMode and RRN match, check if the Bank names match. If Yes, copy the Macro name from MacroSheet.xlsx to Data.xlsx and exit loop======; Disabled: True
+29	                         Comment: ===========================If No, jump to Else statement and check if the bank name in Data.xlsx is ICICI (or) HDFC (or) SBI (or) Corporation Bank===================; Disabled: True
+30	                         If $vDataBankName$ Equal To (=) $vMacroBankName$ Then  
+31	                              Excel: Set value of Cell "E$vCounter$" with "$vMacroMacroName$". Session: Session1
+32	                              Exit Loop
+33	                         Else If $vDataBankName$ Equal To (=) "ICICI" OR $vDataBankName$ Equal To (=) "HDFC" OR $vDataBankName$ Equal To (=) "SBI" OR $vDataBankName$ Equal To (=) "Corporation Bank" Then
+34	                              Comment: =============================If Bank name in Data.xlsx is ICICI (or) HDFC (or) SBI (or) Corporation Bank, check if the corrsponding bank name in MacroSheet.xlsx is a (-) hyphen. if Yes, copy the macroname from MacroSheet.xlsx to Data.xlsx and Exit loop======================================; Disabled: True
+35	                              Comment: =============================If No, Continue to loop over the MacroSheet.xlsx=====================================================================; Disabled: True
+36	                              If $vMacroBankName$ Equal To (=) "-" Then
+37	                                   Excel: Set value of Cell "E$vCounter$" with "$vMacroMacroName$". Session: Session1
+38	                                   Exit Loop
+39	                              End If
+40	                         End If
+41	                    End If
+42	               End Loop
+43	               Comment: ===========================Increment the $vCounter$ variable by 1, this is used to loop over the rows in Data.xlsx while copying macro name from MacroSheet.xlsx=========; Disabled: True
+44	               Variable Operation: $vCounter$+1 To $vCounter$
+45	          End Loop
+46	     End If
+47	     Excel: Close Spreadsheet. Session: Session1
+48	     Excel: Close Spreadsheet. Session: Session2
+49	     Comment: ================================Finally, rename the output file in the format specified in the Business Rules=========================================================; Disabled: True
+50	     Rename Files "$vOutputFile$" to "$vOutputFolder$/$vEmail$_Bot_2_Output.xlsx"  
+51	End Error Handling
+1	Comment: =====================================================================================================================================================; Disabled: True
+2	Comment: SUB TASK NAME :      Create Folders and Files=================================================================================================================; Disabled: True
+3	Comment: DESCRIPTION:  This task will create the necessary files and folders to execute BFSI Macros Bot=========================================================================; Disabled: True
+4	Comment: PREREQUISITE:   Place the ConfigFile.xml, Data.xlsx and MacroSheet.xml in AAApplicationPath/Automation Anywhere/MyTasks/UseCase_2  folder=================================; Disabled: True
+5	Comment: DEVELOPED BY:          Bhargavi Paltur  (bhargavi.paltur@qualityarc.com) ==========================================================================================; Disabled: True
+6	Comment: =====================================================================================================================================================; Disabled: True
+7	Comment: ================================Begin Error Handling. Kill task to close all the open excel files.=====================================================================; Disabled: True
+8	Begin Error Handling; Action: Continue; Options: Take Snapshot, Log to File, Variable Assignment,  Task Status: Fail
+9	     Open: "taskkill.exe /f /im excel.exe"
+10	     Comment: ================================Read the ConfigFile.xml and get all folder paths and Email address===========================================================; Disabled: True
+11	     Variable Operation: False To $vErrorFlag$
+12	     XML : Start XML Session using existing file "$AAApplicationPath$\Automation Anywhere\My Tasks\UseCase_2\ConfigFile.xml" Session:ConfigSession
+13	     XML : Get Single Node value from XPath location "//configuration/Bot2/BaseFolder" and assign to variable "$vBaseFolder$". Session:ConfigSession
+14	     XML : Get Single Node value from XPath location "//configuration/Bot2/InputFolder" and assign to variable "$vInputFolder$". Session:ConfigSession
+15	     XML : Get Single Node value from XPath location "//configuration/Bot2/OutputFolder" and assign to variable "$vOutputFolder$". Session:ConfigSession
+16	     XML : Get Single Node value from XPath location "//configuration/Bot2/LogFolder" and assign to variable "$vLogFolder$". Session:ConfigSession
+17	     XML : Get Single Node value from XPath location "//configuration/Bot2/Email" and assign to variable "$vEmail$". Session:ConfigSession
+18	     Comment: ============================Creating folders BaseFolder, InputFolder, OutputFolder and LogFolder===============================================================; Disabled: True
+19	     Comment: ============================The BaseFolder will have InputFolder, OutputFolder and LogFolder==================================================================; Disabled: True
+20	     If Folder Does Not Exist ("$vBaseFolder$")  Then  
+21	          Create Folder "$vBaseFolder$"
+22	     End If
+23	     If Folder Does Not Exist ("$vInputFolder$")  Then  
+24	          Create Folder "$vInputFolder$"
+25	     End If
+26	     If Folder Does Not Exist ("$vOutputFolder$")  Then  
+27	          Create Folder "$vOutputFolder$"
+28	     End If
+29	     If Folder Does Not Exist ("$vLogFolder$")  Then  
+30	          Create Folder "$vLogFolder$"
+31	     End If
+32	     Comment: ===========================Within the LogFolder, Creating .CSV error log file===============================================================================; Disabled: True
+33	     Variable Operation: $vLogFolder$\ErrorLog_$Day$_$Month$_$Year$.csv To $vErrorLogFile$
+34	     If File Does Not Exist ("$vErrorLogFile$")  Then  
+35	          Log to File: TimeStamp,Task Name, Error line number, Error Description, Status in "$vErrorLogFile$"
+36	     End If
+37	     Comment: ===========================Within the log folder, Creating ErrorSnapShots folder===========================================================================; Disabled: True
+38	     Variable Operation: $vLogFolder$\ErrorScreenShots_$Day$_$Month$_$Year$ To $VErrorSnapShotsPath$
+39	     If Folder Does Not Exist ("$VErrorSnapShotsPath$")  Then  
+40	          Create Folder "$VErrorSnapShotsPath$"
+41	     End If
+42	     Comment: ===========================Within the Input Folder, Place the Input MacroSheet.xlsx file, if it does not already exist=================================================; Disabled: True
+43	     Variable Operation: $vInputFolder$/MacroSheet.xlsx To $vInputFile$
+44	     If File Does Not Exist ("$vInputFolder$/MacroSheet.xlsx")  Then  
+45	          Copy Files "$AAApplicationPath$\Automation Anywhere\My Tasks\UseCase_2\MacroSheet.xlsx" to "$vInputFolder$"  
+46	     End If
+47	     Comment: ===========================Within the Output folder, delete the output file if already exist. Else, place a new one=====================================================; Disabled: True
+48	     Variable Operation: $vOutputFolder$\Data.xlsx To $vOutputFile$
+49	     If File Exists ("$vOutputFolder$\*.xlsx")  Then   
+50	          Delete Files "$vOutputFolder$\*.xlsx" 
+51	     End If
+52	     Copy Files "$AAApplicationPath$\Automation Anywhere\My Tasks\UseCase_2\Data.xlsx" to "$vOutputFolder$"  
+53	End Error Handling
+

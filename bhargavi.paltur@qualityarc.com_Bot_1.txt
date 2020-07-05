@@ -1,0 +1,122 @@
+1	Comment: ======================================================================================================================================================; Disabled: True
+2	Comment: =====MASTER BOT NAME:          Gratuity Analysis ============================================================================================================; Disabled: True
+3	Comment: =====DESCRIPTION:   Analyze the input xml for gratuity eligibility, pick the eligible employee data and write to the ouput excel file. Read the ouput excel and send email to eligible employees==; Disabled: True
+4	Comment: =====DEVELOPED BY:          Bhargavi Paltur  (bhargavi.paltur@qualityarc.com) =====================================================================================; Disabled: True
+5	Comment: =======================================================================================================================================================; Disabled: True
+6	Comment: =====================================Run Task to create the necessary folder structure, with Input, Output and Log files==================================================; Disabled: True
+7	Run Task "$AAApplicationPath$\Automation Anywhere\My Tasks\UseCase_1\UseCase1_CreateFoldersFiles.atmx" @Repeat: Do Not Repeat @Speed: Normal Speed @Pass Variable as argument: $Prompt-Assignment$; $vErrorFlag$; $vErrorLogFile$; $vErrorSnapShotsPath$; $vFromEmail$; $vInputFile$; $vOutputFile$; $vOutputFolder$
+8	Comment: ===========================================Begin Error Handling, Open the Input and Output files===================================================================; Disabled: True
+9	Begin Error Handling; Action: Continue; Options: Take Snapshot, Log to File, Variable Assignment,  Task Status: Fail
+10	     If $vErrorFlag$ Equal To (=) "False" Then  
+11	          Excel: Open Spreadsheet "$vOutputFile$". ActiveSheet: "Default". Contains Header. Session: Session1
+12	          XML : Start XML Session using existing file "$vInputFile$" Session:Session1
+13	          Comment: ================================================Loop the input xml file and check for the employee eligible for gratuity===========================================; Disabled: True
+14	          XML : Get Multiple Nodes text value from XPath expression "Employee". Session:Session1
+15	          Start Loop "Each Node In a XML Dataset Session: Session1"
+16	               XML : Get Single Node value from XPath location "//Employee[$Counter$]/Years" and assign to variable "$vYears$". Session:Session1
+17	               XML : Get Single Node value from XPath location "//Employee[$Counter$]/Performance" and assign to variable "$vPerformance$". Session:Session1
+18	               XML : Get Single Node value from XPath location "//Employee[$Counter$]/Address/City" and assign to variable "$vCity$". Session:Session1
+19	               XML : Get Single Node value from XPath location "//Employee[$Counter$]/Address/State" and assign to variable "$vState$". Session:Session1
+20	               XML : Get Single Node value from XPath location "//Employee[$Counter$]/FirstName" and assign to variable "$vFirstName$". Session:Session1
+21	               XML : Get Single Node value from XPath location "//Employee[$Counter$]/LastName" and assign to variable "$vLastName$". Session:Session1
+22	               XML : Get Single Node value from XPath location "//Employee[$Counter$]/ContactNo" and assign to variable "$vContactNo$". Session:Session1
+23	               XML : Get Single Node value from XPath location "//Employee[$Counter$]/Email" and assign to variable "$vEmail$". Session:Session1
+24	               XML : Get Single Node value from XPath location "//Employee[$Counter$]/Address/Zip" and assign to variable "$vZip$". Session:Session1
+25	               If $vYears$ Greater Than or Equal To(>=) "5" AND $vPerformance$ Greater Than or Equal To(>=) "5" AND $vCity$ Equal To (=) "NY" AND $vState$ Equal To (=) "New York" Then
+26	                    Comment: ===================================Input the eligible employee details to the output excel file=========================================================; Disabled: True
+27	                    Excel: Set value of Cell "A$vCounter$" with "$vFirstName$". Session: Session1
+28	                    Excel: Set value of Cell "B$vCounter$" with "$vLastName$". Session: Session1
+29	                    Excel: Set value of Cell "C$vCounter$" with "$vContactNo$". Session: Session1
+30	                    Excel: Set value of Cell "D$vCounter$" with "$vEmail$". Session: Session1
+31	                    Excel: Set value of Cell "E$vCounter$" with "$vCity$". Session: Session1
+32	                    Excel: Set value of Cell "F$vCounter$" with "$vState$". Session: Session1
+33	                    Excel: Set value of Cell "G$vCounter$" with "$vZip$". Session: Session1
+34	                    Excel: Set value of Cell "H$vCounter$" with "$vYears$". Session: Session1
+35	                    Excel: Set value of Cell "I$vCounter$" with "$vPerformance$". Session: Session1
+36	                    Excel: Set value of Cell "J$vCounter$" with "Yes". Session: Session1
+37	                    Variable Operation: $vCounter$+1 To $vCounter$
+38	               End If
+39	          End Loop
+40	     End If
+41	     Excel: Close Spreadsheet. Session: Session1
+42	     Comment: ======================================Run Task to read data from ouput xl file and send email to employees eligible for gratuity============================================; Disabled: True
+43	     Run Task "$AAApplicationPath$\Automation Anywhere\My Tasks\UseCase_1\UseCase1_SendEmail.atmx" @Repeat: Do Not Repeat @Speed: Normal Speed @Pass Variable as argument: $vOutputFile$; $vErrorLogFile$; $vErrorSnapShotsPath$; $vErrorFlag$; $vFromEmail$; $vFirstName$; $vLastName$; $vOutputFolder$
+44	     Comment: ======================================Finally, rename the output file in the format specified in Business Rules=====================================================; Disabled: True
+45	     Rename Files "$vOutputFile$" to "$vOutputFolder$/$vFromEmail$_Bot_1_Output.xlsx"  
+46	End Error Handling
+1	Comment: ======================================================================================================================================================; Disabled: True
+2	Comment: SUB TASK NAME  :           Create Folders and Files==============================================================================================================; Disabled: True
+3	Comment: DESCRIPTION:      This task will create the necessary files and folders to execute Gratuity Analysis bot======================================================================; Disabled: True
+4	Comment: PREREQUISITE:     Place the ConfigFile.xml, Employee.xml and Employee.xlsx file in AAAplicationPath/Automation Anywhere/MyTasks/UseCase_1 folder==============================; Disabled: True
+5	Comment: DEVELOPED BY:          Bhargavi Paltur  (bhargavi.paltur@qualityarc.com) ===========================================================================================; Disabled: True
+6	Comment: =======================================================================================================================================================; Disabled: True
+7	Comment: ==============================Begin Error Handling. Kill task to close all the open excel files.=========================================================================; Disabled: True
+8	Begin Error Handling; Action: Continue; Options: Take Snapshot, Log to File, Variable Assignment,  Task Status: Fail
+9	     Open: "taskkill.exe /f /im excel.exe"
+10	     Comment: ==============================Read the ConfigFile.xml and get all folder paths and Email address.================================================================; Disabled: True
+11	     XML : Start XML Session using existing file "$AAApplicationPath$\Automation Anywhere\My Tasks\UseCase_1\ConfigFile.xml" Session:ConfigSession
+12	     XML : Get Single Node value from XPath location "//configuration/Bot1/BaseFolder" and assign to variable "$vBaseFolder$". Session:ConfigSession
+13	     XML : Get Single Node value from XPath location "//configuration/Bot1/InputFolder" and assign to variable "$vInputFolder$". Session:ConfigSession
+14	     XML : Get Single Node value from XPath location "//configuration/Bot1/OutputFolder" and assign to variable "$vOutputFolder$". Session:ConfigSession
+15	     XML : Get Single Node value from XPath location "//configuration/Bot1/LogFolder" and assign to variable "$vLogFolder$". Session:ConfigSession
+16	     XML : Get Single Node value from XPath location "//configuration/Bot1/FromEmail" and assign to variable "$vFromEmail$". Session:ConfigSession
+17	     Variable Operation: False To $vErrorFlag$
+18	     Comment: =============================Creating folders BaseFolder, InputFolder, OutputFolder and LogFolder===============================================================; Disabled: True
+19	     Comment: =============================The BaseFolder will have InputFolder, OutputFolder and LogFolder==================================================================; Disabled: True
+20	     If Folder Does Not Exist ("$vBaseFolder$")  Then  
+21	          Create Folder "$vBaseFolder$"
+22	     End If
+23	     If Folder Does Not Exist ("$vInputFolder$")  Then  
+24	          Create Folder "$vInputFolder$"
+25	     End If
+26	     If Folder Does Not Exist ("$vOutputFolder$")  Then  
+27	          Create Folder "$vOutputFolder$"
+28	     End If
+29	     If Folder Does Not Exist ("$vLogFolder$")  Then  
+30	          Create Folder "$vLogFolder$"
+31	     End If
+32	     Comment: ===========================Within the LogFolder, Creating .CSV error log file===============================================================================; Disabled: True
+33	     Variable Operation: $vLogFolder$\ErrorLog_$Day$_$Month$_$Year$.csv To $vErrorLogFile$
+34	     If File Does Not Exist ("$vErrorLogFile$")  Then  
+35	          Log to File: TimeStamp,Task Name, Error line number, Error Description, Status in "$vErrorLogFile$"
+36	     End If
+37	     Comment: ===========================Within the Log folder, Creating ErrorSnapShots folder============================================================================; Disabled: True
+38	     Variable Operation: $vLogFolder$\ErrorScreenShots_$Day$_$Month$_$Year$ To $VErrorSnapShotsPath$
+39	     If Folder Does Not Exist ("$VErrorSnapShotsPath$")  Then  
+40	          Create Folder "$VErrorSnapShotsPath$"
+41	     End If
+42	     Comment: ===========================Within the Input Folder, Place the Input Employee.xml file, if it does not already exist====================================================; Disabled: True
+43	     Variable Operation: $vInputFolder$/Employee.xml To $vInputFile$
+44	     If File Does Not Exist ("$vInputFolder$/Employee.xml")  Then  
+45	          Copy Files "$AAApplicationPath$\Automation Anywhere\My Tasks\UseCase_1\Employee.xml" to "$vInputFolder$"  
+46	     End If
+47	     Comment: ===========================Within the Output folder, if the output file  already exists, delete it and place a new one==================================================; Disabled: True
+48	     Variable Operation: $vOutputFolder$\Employee.xlsx To $vOutputFile$
+49	     If File Exists ("$vOutputFolder$\*.xlsx")  Then   
+50	          Delete Files "$vOutputFolder$\*.xlsx" 
+51	     End If
+52	     Copy Files "$AAApplicationPath$\Automation Anywhere\My Tasks\UseCase_1\Employee.xlsx" to "$vOutputFolder$"  
+53	End Error Handling
+1	Comment: ======================================================================================================================================================; Disabled: True
+2	Comment: SUB TASK NAME:            Read data from output excel and send email to eligible employees=============================================================================; Disabled: True
+3	Comment: DESCRIPTION:            This task will read data from output excel and send email to eligible employees=======================================================================; Disabled: True
+4	Comment: DEVELOPED BY:          Bhargavi Paltur  (bhargavi.paltur@qualityarc.com) ===========================================================================================; Disabled: True
+5	Comment: =======================================================================================================================================================; Disabled: True
+6	Begin Error Handling; Action: Continue; Options: Take Snapshot, Log to File, Variable Assignment,  Task Status: Fail
+7	     If $vErrorFlag$ Equal To (=) "False" Then  
+8	          Comment: ======================Open the output excel file. Start loop to read the excel data and send email====================================================================; Disabled: True
+9	          Excel: Open Spreadsheet "$vOutputFile$". ActiveSheet: "Default". Contains Header. Session: Session1
+10	          Excel: Get All Cells Session: Session1
+11	          Start Loop "Each row in an Excel dataset of Session: Session1"
+12	               Excel: Get value of cell "D$vCounter$" and assign to variable "$vEmail$" Session: Session1
+13	               Excel: Get value of cell "H$vCounter$" and assign to variable "$vYears$" Session: Session1
+14	               Excel: Get value of cell "I$vCounter$" and assign to variable "$vPerformance$" Session: Session1
+15	               Excel: Get value of cell "J$vCounter$" and assign to variable "$vEligibility$" Session: Session1
+16	               Send Email: Subject "Gratuity Eligibility" 
+17	               Variable Operation: $vCounter$+1 To $vCounter$
+18	          End Loop
+19	          Comment: ===============================================Close the output Excel file====================================================================; Disabled: True
+20	          Excel: Close Spreadsheet. Session: Session1
+21	     End If
+22	End Error Handling
+

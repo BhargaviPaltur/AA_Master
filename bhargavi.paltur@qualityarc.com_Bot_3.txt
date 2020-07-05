@@ -1,0 +1,145 @@
+1	Comment: ===========================================================================================================================================; Disabled: True
+2	Comment: =====MASTER BOT NAME:          Invoice Processing=================================================================================================; Disabled: True
+3	Comment: =====DESCRIPTION:   Download the Invoice PDF's and output excel from the website. Extract PDF data based on the business rules mentioned and enter extracted data to output excel file===; Disabled: True
+4	Comment: =====DEVELOPED BY:          Bhargavi Paltur  (bhargavi.paltur@qualityarc.com) ===========================================================================; Disabled: True
+5	Comment: ===========================================================================================================================================; Disabled: True
+6	Comment: ============================ Run task to create necessary folder structure, with Input, Output and Log folders/files======================================================; Disabled: True
+7	Run Task "$AAApplicationPath$\Automation Anywhere\My Tasks\UseCase_3\UseCase_3_CreateFoldersFiles.atmx" @Repeat: Do Not Repeat @Speed: Normal Speed @Pass Variable as argument: $Prompt-Assignment$; $vBaseFolder$; $vErrorFlag$; $vErrorLogFile$; $VErrorSnapShotsPath$; $vInputFolder$; $vLogFolder$; $vOutputFile$; $vOutputFolder$; $vEmail$; $vWebsiteURL$
+8	Comment: ==================================Begin Error handling.. Launch the website in IE browser=================================================; Disabled: True
+9	Begin Error Handling; Action: Continue; Options: Take Snapshot, Log to File, Variable Assignment,  Task Status: Fail
+10	     If $vErrorFlag$ Equal To (=) "False" Then  
+11	          Launch Website "$vWebsiteURL$"
+12	          Comment: =====================================Login to the website, with user credentials fetched from Credential Locker in the Control Room=========================; Disabled: True
+13	          Object Cloning: Set Text of TextBox "username" in window 'Master's Certification - PDF Example - Internet Explorer'; Value:"$Bhargavi_Usecase_3(username)$"; Source: Window; Play Type: Object
+14	          Object Cloning: Set Text of TextBox "password" in window 'Master's Certification - PDF Example - Internet Explorer'; Value: "******************************" ; Source: Windows; Play Type: Object 
+15	          Object Cloning: Click On PushButton "" in window 'Master's Certification - PDF Example - Internet Explorer'; Click Type: Click; Source: Window; Play Type: Object
+16	          Comment: =================================Start loop to download  all PDFs and xlsx files from the website and place them in the Input Folder===========================; Disabled: True
+17	          Loop While Windows Object (Link) Properties in the window "Master's Certification - PDF Example - Internet Explorer"
+18	               Object Cloning: Get Property 'HTML HRef' of Link "" from window 'Master's Certification - PDF Example - Internet Explorer'; Assign to variable "$vDownloadedFile$"; Source: Window; Play Type:Object
+19	               String Operation: Before-After "$vDownloadedFile$"; Before: "master-pdf/" and assign output to $vFile$
+20	               Download file '$vInputFolder$/$vFile$' from '$vDownloadedFile$'
+21	               Variable Operation: $vCounter$+1 To $vCounter$
+22	          End Loop
+23	          Comment: =============================Delete any excel files in Ouput folder. And copy the downloaded xlsx file in input folder to the output folder=======================; Disabled: True
+24	          If File Exists ("$vOutputFolder$/*.xlsx")  Then   
+25	               Delete Files "$vOutputFolder$/*.xlsx" 
+26	          End If
+27	          Copy Files "$vInputFolder$/invoice_template.xlsx" to "$vOutputFolder$/invoice_template.xlsx"  
+28	          Variable Operation: $vOutputFolder$\invoice_template.xlsx To $vOutputFile$
+29	          Comment: =================================After copying the excel file into output folder, delete it from the input folder. Close the browser window========================; Disabled: True
+30	          Delete Files "$vInputFolder$/invoice_template.xlsx" 
+31	          Close Window: "*- Internet Explorer"
+32	     End If
+33	     Comment: =================================Run task to extract the pdf data based on the business rules and enter the extracted data to output excel file=======================; Disabled: True
+34	     Run Task "$AAApplicationPath$\Automation Anywhere\My Tasks\UseCase_3\UseCase_3_ReadPDF.atmx" @Repeat: Do Not Repeat @Speed: Normal Speed @Pass Variable as argument: $Prompt-Assignment$; $vErrorLogFile$; $VErrorSnapShotsPath$; $vInputFolder$; $vOutputFile$; $vErrorFlag$; $vEmail$; $vOutputFolder$
+35	     Comment: =========================== Finally, renaming the output file in the format specified in Business rules=========================================================; Disabled: True
+36	     Rename Files "$vOutputFile$" to "$vOutputFolder$/$vEmail$_Bot_3_Output.xlsx"  
+37	End Error Handling
+1	Comment: ======================================================================================================================================================; Disabled: True
+2	Comment: SUB TASK NAME :      Create Folders and Files============================================================================================================; Disabled: True
+3	Comment: DESCRIPTION:    This task will create the necessary files and folders to execute Invoice Processing bot====================================================================; Disabled: True
+4	Comment: PREREQUISITE:  Place the ConfigFile.xml in AAAplicationPath/Automation Anywhere/MyTasks/Use Case_3  folder==========================================================; Disabled: True
+5	Comment: DEVELOPED BY:          Bhargavi Paltur  (bhargavi.paltur@qualityarc.com) ==========================================================================================; Disabled: True
+6	Comment: ======================================================================================================================================================; Disabled: True
+7	Comment: ========================Begin Error Handling. Kill task to close all the open excel files and open Internet Explorer==========================================================; Disabled: True
+8	Begin Error Handling; Action: Continue; Options: Take Snapshot, Log to File, Variable Assignment,  Task Status: Fail
+9	     Open: "taskkill.exe /f /im excel.exe"
+10	     Open: "taskkill.exe /f /im iexplore.exe"
+11	     Comment: ===============================Read the ConfigFile.xml and get all folder paths,website url and Email address=======================================================; Disabled: True
+12	     XML : Start XML Session using existing file "$AAApplicationPath$\Automation Anywhere\My Tasks\UseCase_3\ConfigFile.xml" Session:ConfigSession
+13	     XML : Get Single Node value from XPath location "//configuration/Bot3/BaseFolder" and assign to variable "$vBaseFolder$". Session:ConfigSession
+14	     XML : Get Single Node value from XPath location "//configuration/Bot3/InputFolder" and assign to variable "$vInputFolder$". Session:ConfigSession
+15	     XML : Get Single Node value from XPath location "//configuration/Bot3/OutputFolder" and assign to variable "$vOutputFolder$". Session:ConfigSession
+16	     XML : Get Single Node value from XPath location "//configuration/Bot3/LogFolder" and assign to variable "$vLogFolder$". Session:ConfigSession
+17	     XML : Get Single Node value from XPath location "//configuration/Bot3/WebsiteURL" and assign to variable "$vWebsiteURL$". Session:ConfigSession
+18	     XML : Get Single Node value from XPath location "//configuration/Bot3/Email" and assign to variable "$vEmail$". Session:ConfigSession
+19	     Variable Operation: False To $vErrorFlag$
+20	     Comment: =======================Creating folders BaseFolder, InputFolder, OutputFolder and LogFolder===============================================================; Disabled: True
+21	     Comment: =======================The BaseFolder will have InputFolder, OutputFolder and LogFolder==================================================================; Disabled: True
+22	     If Folder Does Not Exist ("$vBaseFolder$")  Then  
+23	          Create Folder "$vBaseFolder$"
+24	     End If
+25	     If Folder Does Not Exist ("$vInputFolder$")  Then  
+26	          Create Folder "$vInputFolder$"
+27	     End If
+28	     If Folder Does Not Exist ("$vOutputFolder$")  Then  
+29	          Create Folder "$vOutputFolder$"
+30	     End If
+31	     If Folder Does Not Exist ("$vLogFolder$")  Then  
+32	          Create Folder "$vLogFolder$"
+33	     End If
+34	     Comment: ===========================Within the LogFolder, Creating .CSV error log file===============================================================================; Disabled: True
+35	     Variable Operation: $vLogFolder$\ErrorLog_$Day$_$Month$_$Year$.csv To $vErrorLogFile$
+36	     If File Does Not Exist ("$vErrorLogFile$")  Then  
+37	          Log to File: TimeStamp,Task Name, Error line number, Error Description, Status in "$vErrorLogFile$"
+38	     End If
+39	     Comment: ===========================Within the log folder, creating ErrorSnapShots folder=========================================================================; Disabled: True
+40	     Variable Operation: $vLogFolder$\ErrorScreenShots_$Day$_$Month$_$Year$ To $VErrorSnapShotsPath$
+41	     If Folder Does Not Exist ("$VErrorSnapShotsPath$")  Then  
+42	          Create Folder "$VErrorSnapShotsPath$"
+43	     End If
+44	End Error Handling
+1	Comment: ===================================================================================================================; Disabled: True
+2	Comment: SUB TASK  :          Read PDF and write to excel===============================================================================; Disabled: True
+3	Comment: DESCRIPTION:    This task will read the downloaded PDF's and extract data as per business rules and input the extraxted data to output excel file==; Disabled: True
+4	Comment: DEVELOPED BY:          Bhargavi Paltur  (bhargavi.paltur@qualityarc.com) =========================================================; Disabled: True
+5	Comment: ====================================================================================================================; Disabled: True
+6	Comment: ==========================Begin Error handling. Open the invoice_template.xlsx Output file========================================; Disabled: True
+7	Begin Error Handling; Action: Continue; Options: Take Snapshot, Log to File, Variable Assignment,  Task Status: Fail
+8	     If $vErrorFlag$ Equal To (=) "False" Then  
+9	          Excel: Open Spreadsheet "$vOutputFile$". ActiveSheet: "Default". Session: Session1
+10	          Comment: ==========================Start loop to extract data from all PDF files placed in $InputFolder$ one after the other=========================; Disabled: True
+11	          Start Loop "Each File In Folder $vInputFolder$"
+12	               PDF Integration: Extract Form Fields from "$vInputFolder$\$FileName$.pdf"
+13	               Comment: =============For the Unit Price, List Price, Quantity and Description columns that are extracted from PDF; using String Split command to get each data in the columns into List variable=====; Disabled: True
+14	               String Operation: Split "$vUnitPrice$" with delimiter "[ENTER]" and assign output to $lstUnitPrice$
+15	               String Operation: Split "$vQuantity$" with delimiter "[ENTER]" and assign output to $lstQuantity$
+16	               String Operation: Split "$vLineTotal$" with delimiter "[ENTER]" and assign output to $lstLnTotal$
+17	               String Operation: Split "$vDescription$" with delimiter "[ENTER]" and assign output to $lstDescription$
+18	               Comment: ===============Run Metabot Logic to Compare the Date field extracted from PDF against 1-April-2019 as mentioned in Business Rule, and assign output to a variable=======; Disabled: True
+19	               Run Logic "DateCompareLogic" from MetaBot "My MetaBots\DateCompare.mbot" Input($vDueDate$, $vAprilDate$) Output($vIsDateGreater$)
+20	               Comment: ============Using String Compare command to validate 'Payment Terms' field value extracted from PDF as mentioned in Business Rule, and assign it to a variable============; Disabled: True
+21	               Keystrokes: [BACKSPACE] in "$vBackSpace$"
+22	               String Operation: Replace "[ENTER]" with "$vBackSpace$" in "$vPaymentTerms$" and assign output to $vPaymentTerms$ 
+23	               String Operation: Compare "$vPaymentTerms$" with "Due on Receipt" and assign output to $vIsPaymentDataSame$
+24	               Comment: =====================Start loop to pick the values in list variable lstQuantity one by one,till the variable vQuantity is equal to null  ==========================; Disabled: True
+25	               Comment: ============Note that when lstQuatity list variable is looped, other list variables lstUnit Price, lstLine Total and lstDescription are also getting looped==============; Disabled: True
+26	               Start Loop "List Variable $lstQuantity$" 
+27	                    String Operation: Trim "$lstQuantity$" and assign output to $vQuantity$
+28	                    If $vQuantity$ Equal To (=) "" Then
+29	                         Exit Loop
+30	                    End If
+31	                    Comment: ===========Using SubString command to eliminate the $ symbol in UnitPrice and ListPrice variable, to validate them with conditions provided in business rules=======; Disabled: True
+32	                    String Operation: Extract substring from "$lstLnTotal$" and assign output to $vLineTotal$
+33	                    String Operation: Extract substring from "$lstUnitPrice$" and assign output to $vUnitPrice$
+34	                    Comment: =========================If condition to validate the business rules and enter valid data to output Excel==============================================; Disabled: True
+35	                    If $lstQuantity$ Greater Than or Equal To(>=) "2" AND $vIsPaymentDataSame$ Equal To (=) "TRUE" AND $vIsDateGreater$ Equal To (=) "False" AND $vLineTotal$ Greater Than or Equal To(>=) "100.00" AND $vUnitPrice$ Greater Than or Equal To(>=) "2.00" Then
+36	                         Excel: Set value of Cell "A$vCounter$" with "$vCompany$". Session: Session1
+37	                         Excel: Set value of Cell "B$vCounter$" with "$vInvoiceDate$". Session: Session1
+38	                         Excel: Set value of Cell "C$vCounter$" with "$vInvoiceNo$". Session: Session1
+39	                         Excel: Set value of Cell "D$vCounter$" with "$vSalesPerson$". Session: Session1
+40	                         Excel: Set value of Cell "E$vCounter$" with "$vJob$". Session: Session1
+41	                         Excel: Set value of Cell "F$vCounter$" with "$vPaymentTerms$". Session: Session1
+42	                         Excel: Set value of Cell "G$vCounter$" with "$vDueDate$". Session: Session1
+43	                         Excel: Set value of Cell "H$vCounter$" with "$vQuantity$". Session: Session1
+44	                         Excel: Set value of Cell "I$vCounter$" with "$lstDescription$". Session: Session1
+45	                         Excel: Set value of Cell "J$vCounter$" with "$lstUnitPrice$". Session: Session1
+46	                         Comment: ==================Changing the format of cells K4 and K5 in the output file invoice_template.xlsx to 'Currency' to accomodate the $ sign =========================; Disabled: True
+47	                         If $vCounter$ Equal To (=) "4" OR $vCounter$ Equal To (=) "5" Then
+48	                              Excel: Set value of Cell "K$vCounter$" with "$lstLnTotal$". Session: Session1
+49	                              Keystrokes: [CTRL DOWN][SHIFT DOWN]4[CTRL UP][SHIFT UP] in "Microsoft Excel - invoice_template"
+50	                         Else
+51	                              Excel: Set value of Cell "K$vCounter$" with "$lstLnTotal$". Session: Session1
+52	                         End If
+53	                         Variable Operation: $vCounter$+1 To $vCounter$
+54	                    Else
+55	                         Continue
+56	                    End If
+57	               End Loop
+58	          End Loop
+59	     End If
+60	     Comment: ===========================Closing the output excel file===============================================================================================; Disabled: True
+61	     Excel: Close Spreadsheet. Session: Session1
+62	End Error Handling
+1	Execute 'isStartDateGreaterThanEndDate' api of 'UseCase3.dll' and assign its output to the variable '$vLogicIsDateGreater$'
+
